@@ -12,7 +12,7 @@ Members Name:
               3. Aditya Sekhar Das
               4. Swadhin Dibya Jyoti
 
-Domain: Articial Intelligance in healthcare
+Domain: AI and Automation in healthcare
 
 Approved Problem Statement : EROS – An AI powered unified emergency platform designed to reduce response delays and save lives.
 
