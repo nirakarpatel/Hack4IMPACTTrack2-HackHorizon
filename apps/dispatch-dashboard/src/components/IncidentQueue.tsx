@@ -10,6 +10,12 @@ interface Emergency {
         phone: string;
         bloodType?: string;
         allergies?: string;
+        spo2?: string;
+        heartRate?: string;
+        bloodGroup?: string;
+        bloodPressure?: string;
+        city?: string;
+        state?: string;
     };
     location: { lat: number; lng: number; address?: string };
     type: string;
@@ -26,6 +32,8 @@ interface Recommendation {
     equipment_match_score: number;
     reasoning: string;
 }
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:4000';
 
 export default function IncidentQueue() {
     const [emergencies, setEmergencies] = useState<Emergency[]>([]);
@@ -83,7 +91,6 @@ export default function IncidentQueue() {
     }, []);
 
     const fetchRecommendations = async (incidentId: string) => {
-        const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:4000';
         setLoadingRecs(prev => ({ ...prev, [incidentId]: true }));
         try {
             const response = await fetch(`${BACKEND_URL}/api/ai-recommendations`, {
@@ -103,7 +110,6 @@ export default function IncidentQueue() {
     };
 
     const handleAssign = async (incidentId: string, ambId?: string) => {
-        const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:4000';
         try {
             const response = await fetch(`${BACKEND_URL}/api/simulator/assign`, {
                 method: 'POST',
@@ -180,6 +186,28 @@ export default function IncidentQueue() {
                                     </span>
                                 </div>
                             </div>
+
+                            {/* Citizen Health Metrics Pane */}
+                            {incident.userProfile && (incident.userProfile.spo2 || incident.userProfile.bloodGroup) && (
+                                <div className="mb-4 p-3 bg-slate-900 border border-white/5 rounded-xl grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-500">SpO2:</span>
+                                        <span className="font-black text-slate-300">{incident.userProfile.spo2 || '--'}%</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-500">Heart Rate:</span>
+                                        <span className="font-black text-slate-300">{incident.userProfile.heartRate || '--'} bpm</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-500">BP:</span>
+                                        <span className="font-black text-slate-300">{incident.userProfile.bloodPressure || '--'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-500">Blood Group:</span>
+                                        <span className="font-black text-red-400">{incident.userProfile.bloodGroup || incident.userProfile.bloodType || '--'}</span>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* AI Recommendations Panel */}
                             {incident.status === 'pending' && recommendations[incident.id] && (
