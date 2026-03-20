@@ -146,7 +146,7 @@ const SlideToSOS = ({ onConfirm }) => {
 const App = () => {
     const [step, setStep] = useState('register'); // register, dashboard, sos_active
     const [user, setUser] = useState({
-        name: '', phone: '', bloodType: '', allergies: '', emergencyContact: ''
+        name: '', phone: '', spo2: '', heartRate: '', bloodGroup: '', bloodPressure: '', city: '', state: ''
     });
     const [userLocation, setUserLocation] = useState(null);
     const [incidentId, setIncidentId] = useState(null);
@@ -258,6 +258,48 @@ const App = () => {
                     <form onSubmit={handleRegister} className="space-y-6">
                         <input required className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl px-6 py-4" value={user.name} onChange={e => setUser({ ...user, name: e.target.value })} placeholder="Full Name" />
                         <input required className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl px-6 py-4" value={user.phone} onChange={e => setUser({ ...user, phone: e.target.value })} placeholder="Phone Number" />
+                        <div className="grid grid-cols-2 gap-4">
+                            <input required type="number" className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl px-6 py-4" value={user.spo2} onChange={e => setUser({ ...user, spo2: e.target.value })} placeholder="SpO2 (%)" />
+                            <input required type="number" className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl px-6 py-4" value={user.heartRate} onChange={e => setUser({ ...user, heartRate: e.target.value })} placeholder="Heart Rate" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <input required className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl px-6 py-4" value={user.bloodGroup} onChange={e => setUser({ ...user, bloodGroup: e.target.value })} placeholder="Blood Group" />
+                            <input required className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl px-6 py-4" value={user.bloodPressure} onChange={e => setUser({ ...user, bloodPressure: e.target.value })} placeholder="BP (e.g. 120/80)" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <input required className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl px-6 py-4" value={user.city} onChange={e => setUser({ ...user, city: e.target.value })} placeholder="City" />
+                            <select required className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl px-6 py-4 text-slate-300" value={user.state} onChange={e => setUser({ ...user, state: e.target.value })}>
+                                <option value="" disabled>Select State</option>
+                                <option value="Andhra Pradesh">Andhra Pradesh</option>
+                                <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                                <option value="Assam">Assam</option>
+                                <option value="Bihar">Bihar</option>
+                                <option value="Chhattisgarh">Chhattisgarh</option>
+                                <option value="Goa">Goa</option>
+                                <option value="Gujarat">Gujarat</option>
+                                <option value="Haryana">Haryana</option>
+                                <option value="Himachal Pradesh">Himachal Pradesh</option>
+                                <option value="Jharkhand">Jharkhand</option>
+                                <option value="Karnataka">Karnataka</option>
+                                <option value="Kerala">Kerala</option>
+                                <option value="Madhya Pradesh">Madhya Pradesh</option>
+                                <option value="Maharashtra">Maharashtra</option>
+                                <option value="Manipur">Manipur</option>
+                                <option value="Meghalaya">Meghalaya</option>
+                                <option value="Mizoram">Mizoram</option>
+                                <option value="Nagaland">Nagaland</option>
+                                <option value="Odisha">Odisha</option>
+                                <option value="Punjab">Punjab</option>
+                                <option value="Rajasthan">Rajasthan</option>
+                                <option value="Sikkim">Sikkim</option>
+                                <option value="Tamil Nadu">Tamil Nadu</option>
+                                <option value="Telangana">Telangana</option>
+                                <option value="Tripura">Tripura</option>
+                                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                                <option value="Uttarakhand">Uttarakhand</option>
+                                <option value="West Bengal">West Bengal</option>
+                            </select>
+                        </div>
                         <button className="w-full bg-red-600 font-black py-5 rounded-2xl shadow-xl">SAVE IDENTITY</button>
                     </form>
                 </div>
@@ -278,11 +320,12 @@ const App = () => {
                 <div className="glass p-8 rounded-[3rem] border-slate-800/40">
                     <div className="flex gap-10 items-center">
                         <div className="w-24 h-24 bg-slate-950 rounded-full flex items-center justify-center border-4 border-red-600/20 text-3xl font-black text-red-500">
-                            {user.bloodType || 'O+'}
+                            {user.bloodGroup || 'O+'}
                         </div>
                         <div className="flex-1 space-y-4">
-                            <p className="text-sm font-bold text-slate-300">Heart Rate: 72 bpm</p>
-                            <p className="text-sm font-bold text-slate-300">SpO2: 98%</p>
+                            <p className="text-sm font-bold text-slate-300">Heart Rate: {user.heartRate || '72'} bpm</p>
+                            <p className="text-sm font-bold text-slate-300">SpO2: {user.spo2 || '98'}%</p>
+                            <p className="text-sm font-bold text-slate-300">BP: {user.bloodPressure || '120/80'}</p>
                         </div>
                     </div>
                 </div>

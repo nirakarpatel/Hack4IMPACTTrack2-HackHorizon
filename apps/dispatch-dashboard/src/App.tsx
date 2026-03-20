@@ -9,6 +9,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:4000';
 export default function App() {
     const [simulatorActive, setSimulatorActive] = React.useState(false);
     const [autoDispatch, setAutoDispatch] = React.useState(true);
+    const [showCitizenApp, setShowCitizenApp] = React.useState(false);
 
     React.useEffect(() => {
         const checkStatus = async () => {
@@ -91,6 +92,18 @@ export default function App() {
                             <span>
                                 {simulatorActive ? 'Simulator Active' : 'Start Simulator'}
                             </span>
+                        </button>
+
+                        {/* Citizen App Toggle */}
+                        <button
+                            onClick={() => setShowCitizenApp(!showCitizenApp)}
+                            className={`flex items-center gap-2 px-4 py-1.5 rounded-full border transition-all text-xs font-bold uppercase tracking-wider ${showCitizenApp
+                                ? 'bg-orange-600/20 border-orange-500/50 text-orange-400'
+                                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                                }`}
+                        >
+                            <div className={`w-2 h-2 rounded-full ${showCitizenApp ? 'bg-orange-500 animate-pulse' : 'bg-slate-600'}`}></div>
+                            <span>Citizen App View</span>
                         </button>
 
                         <div className="flex flex-col items-end mr-4">
@@ -185,6 +198,16 @@ export default function App() {
                         <IncidentQueue />
                     </div>
                 </div>
+
+                {/* Phone Simulator Overlay */}
+                {showCitizenApp && (
+                    <div className="fixed bottom-8 right-8 z-[100] w-[375px] h-[750px] bg-slate-950 rounded-[3rem] border-[6px] border-slate-800 shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col transition-all duration-500 animate-in slide-in-from-bottom-10 fade-in">
+                        {/* Phone Notch */}
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-800 rounded-b-3xl z-10"></div>
+                        {/* IFrame */}
+                        <iframe src="http://localhost:3001" className="w-full h-full flex-1 border-0" title="Citizen OS App" />
+                    </div>
+                )}
             </main>
         </div>
     );
