@@ -93,9 +93,12 @@ export default function App() {
                             </span>
                         </button>
 
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full">
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="text-xs font-bold text-green-500 uppercase">System Online</span>
+                        <div className="flex flex-col items-end mr-4">
+                            <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
+                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                <span className="text-[9px] font-black text-green-500 uppercase tracking-widest">System Online</span>
+                            </div>
+                            <span className="text-[8px] text-slate-500 font-mono mt-1 italic">Last Sync: {new Date().toLocaleTimeString()}</span>
                         </div>
 
                         <div className="flex items-center gap-3">

@@ -6,7 +6,7 @@ To deploy the full EROS system and make it publicly accessible, follow these ste
 The backend simulator requires a persistent server for WebSockets.
 
 1.  Create a new **Web Service** on [Render](https://render.com).
-2.  Connect your GitHub repo (`nirakarpatel/eros`).
+2.  Connect your GitHub repo (`github.com/nirakarpatel/Hack4IMPACTTrack2-HackHorizon`).
 3.  Set **Root Directory** to `services/backend-engine`.
 4.  Set **Build Command** to `npm install`.
 5.  Set **Start Command** to `node index.js`.

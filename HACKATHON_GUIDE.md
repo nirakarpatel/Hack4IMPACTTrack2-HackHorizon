@@ -1,7 +1,6 @@
 # EROS: Emergency Response Orchestration System
-## Hackathon Demo Guide 🚀
+## Hackathon Demo Guide 
 
-Your EROS system is now **Level Pro** and ready for judging. 
 
 ### 1. Launch Sequence
 Make sure all three services are running in their terminals:
