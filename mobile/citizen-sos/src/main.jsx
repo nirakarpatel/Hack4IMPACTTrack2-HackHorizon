@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Shield, MapPin, Phone, User, Activity, Bell, AlertTriangle, Navigation, ChevronRight, Heart, Zap, Thermometer, Droplets, Wind, Pill, Calendar, Clock, Plus, CalendarPlus, Stethoscope, ChevronLeft } from 'lucide-react';
+import { Shield, MapPin, Phone, User, Activity, Bell, AlertTriangle, Navigation, ChevronRight, Heart, Zap, Thermometer, Droplets, Wind, Pill, Calendar, Clock, Plus, CalendarPlus, Stethoscope, ChevronLeft, RefreshCcw } from 'lucide-react';
 import io from 'socket.io-client';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
@@ -507,6 +507,12 @@ const App = () => {
                             <p className="text-sm font-bold text-slate-300">SpO2: {user.spo2 || '98'}%</p>
                             <p className="text-sm font-bold text-slate-300">BP: {user.bloodPressure || '120/80'}</p>
                         </div>
+                        <button 
+                            onClick={() => setStep('update_vitals')}
+                            className="w-12 h-12 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center active:scale-95 text-blue-500 hover:bg-blue-500/10 transition-all shadow-lg"
+                        >
+                            <RefreshCcw size={20} />
+                        </button>
                     </div>
                 </div>
 
@@ -527,6 +533,51 @@ const App = () => {
                         </div>
                         <span className="text-xs font-black uppercase tracking-widest text-slate-300">Visits</span>
                     </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (step === 'update_vitals') {
+        const handleUpdateVitals = (e) => {
+            e.preventDefault();
+            saveUser({
+                ...user,
+                heartRate: e.target.hr.value,
+                spo2: e.target.spo2.value,
+                bloodPressure: e.target.bp.value
+            });
+            setStep('profile');
+        };
+
+        return (
+            <div className="min-h-screen bg-slate-950 text-white p-8 space-y-10 flex flex-col pt-12">
+                <header className="flex items-center gap-6">
+                    <button onClick={() => setStep('profile')} className="w-12 h-12 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center active:scale-90 transition-transform text-slate-400">
+                        <ChevronLeft size={24} />
+                    </button>
+                    <div>
+                        <h1 className="text-2xl font-black">Refresh Vitals</h1>
+                        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mt-1">Live Health Update</p>
+                    </div>
+                </header>
+
+                <div className="glass p-8 rounded-[3rem] border-slate-800 shadow-2xl">
+                    <form onSubmit={handleUpdateVitals} className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Heart Rate (BPM)</label>
+                            <input required name="hr" type="number" className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl px-6 py-4" defaultValue={user.heartRate} placeholder="e.g. 72" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">SpO2 (%)</label>
+                            <input required name="spo2" type="number" className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl px-6 py-4" defaultValue={user.spo2} placeholder="e.g. 98" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Blood Pressure</label>
+                            <input required name="bp" className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl px-6 py-4" defaultValue={user.bloodPressure} placeholder="e.g. 120/80" />
+                        </div>
+                        <button className="w-full bg-blue-600 font-black py-5 rounded-2xl shadow-xl shadow-blue-600/20 active:scale-95 transition-transform">UPDATE VITALS</button>
+                    </form>
                 </div>
             </div>
         );

@@ -230,25 +230,57 @@ async def ai_triage(request: TriageRequest):
 
 @app.post("/copilot")
 async def dispatch_copilot(request: CopilotRequest):
-    """Static response copilot for EROS Engine."""
+    """Data-aware dispatch copilot for EROS Engine."""
     message = request.message.strip()
+    context = request.context or {}
+    
     if not message:
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
+    # Extract Data from Context
+    ambulances = context.get('ambulances', [])
+    pending = context.get('pending_incidents', [])
+    resolved_count = context.get('resolved_count', 0)
+    
+    total_amb = len(ambulances)
+    available_amb = len([a for a in ambulances if a.get('status') == 'available'])
+    busy_amb = len([a for a in ambulances if a.get('status') == 'busy'])
+    
+    pending_count = len(pending)
+    critical_count = len([i for i in pending if i.get('priority', 3) <= 2])
+
     msg_lower = message.lower()
+    
+    # 1. Ambulance Availability Queries
     if "available" in msg_lower and "ambulance" in msg_lower:
-        response = "Check the Dispatch Dashboard for real-time ambulance availability in your sector."
+        if total_amb == 0:
+            response = "I currently don't see any ambulances registered in the system."
+        else:
+            response = f"There are currently {available_amb} ambulances available out of a total fleet of {total_amb}. {busy_amb} units are currently on active missions."
+            
+    # 2. Incident/Emergency Queries
+    elif "incident" in msg_lower or "emergency" in msg_lower or "queue" in msg_lower:
+        if pending_count == 0:
+            response = f"The incident queue is currently clear. We have successfully resolved {resolved_count} emergencies in this session."
+        else:
+            response = f"There are {pending_count} active incidents in the queue. {critical_count} of these are flagged as high priority. You can see them highlighted in red on the dashboard."
+
+    # 3. Priority/Protocol Queries
     elif "priority" in msg_lower or "prioritize" in msg_lower:
-        response = "Standard priority order: 1) Cardiac/Stroke/Respiratory → 2) Road Accidents → 3) Burns/Poisoning → 4) Minor Trauma."
+        response = f"Standard priority order: 1) Cardiac/Stroke/Respiratory → 2) Road Accidents → 3) Burns. With {pending_count} pending cases, I recommend clearing the {critical_count} critical alerts first using the nearest available units."
+        
+    # 4. Hospital Queries
     elif "hospital" in msg_lower:
-        response = "Route to the nearest hospital with available beds matching the emergency specialty."
+        response = "Dispatch to the nearest hospital matching the emergency type. The dashboard map icons show live bed availability for all Odisha-based facilities."
+        
+    # 5. Default Response
     else:
-        response = "Dispatch Copilot is in standard protocol mode. Please use manual dispatch for complex queries."
+        response = f"I am monitoring the live EROS feed. We have {available_amb} units ready and {pending_count} active emergencies. How can I assist with dispatching?"
 
     return {
         "success": True,
         "response": response,
-        "ai_source": "static_protocol"
+        "ai_source": "live_data_engine"
     }
 
 
