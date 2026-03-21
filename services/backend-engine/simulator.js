@@ -187,15 +187,50 @@ class EROSSimulator {
     }
 
     async autoAssignAmbulance(incidentId, incident) {
-        const localAvailable = this.ambulances.filter(a => a.status === 'available' && a.city === incident.city);
+        try {
+            const available = this.ambulances.filter(a => a.status === 'available');
+            if (available.length === 0) return;
 
+            // Fetch smart recommendations from AI Router
+            const AI_ROUTER_URL = process.env.AI_ROUTER_URL || 'http://127.0.0.1:8000';
+            const response = await axios.post(`${AI_ROUTER_URL}/find-nearest`, {
+                emergency: {
+                    id: incidentId,
+                    location: incident.location,
+                    type: incident.type,
+                    priority: incident.priority || 3
+                },
+                ambulances: available.map(a => ({
+                    id: a.id,
+                    location: a.location,
+                    status: a.status,
+                    equipment: a.equipment,
+                    type: a.type
+                }))
+            });
+
+            if (response.data.success && response.data.recommendations.length > 0) {
+                const bestMatch = response.data.recommendations[0];
+                console.log(`[AI-SMART-DISPATCH] Auto-assigning ${bestMatch.ambulance_id} to ${incidentId} (Score: ${bestMatch.final_dispatch_score})`);
+                this.assignAmbulance(incidentId, bestMatch.ambulance_id, incident.location);
+            } else {
+                // Fallback to simple distance if AI Router fails to provide a good match
+                this.simpleAutoAssign(incidentId, incident);
+            }
+        } catch (e) {
+            console.error('[AI-SMART-DISPATCH] Router unavailable, falling back to simple assignment:', e.message);
+            this.simpleAutoAssign(incidentId, incident);
+        }
+    }
+
+    simpleAutoAssign(incidentId, incident) {
+        const localAvailable = this.ambulances.filter(a => a.status === 'available' && a.city === incident.city);
         if (localAvailable.length > 0) {
             const bestAmb = localAvailable.sort((a, b) => {
                 const d1 = Math.sqrt(Math.pow(a.location.lat - incident.location.lat, 2) + Math.pow(a.location.lng - incident.location.lng, 2));
                 const d2 = Math.sqrt(Math.pow(b.location.lat - incident.location.lat, 2) + Math.pow(b.location.lng - incident.location.lng, 2));
                 return d1 - d2;
             })[0];
-
             this.assignAmbulance(incidentId, bestAmb.id, incident.location);
         }
     }

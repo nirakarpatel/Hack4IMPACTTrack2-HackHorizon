@@ -119,7 +119,7 @@ export default function App() {
                                 }`}
                         >
                             <div className={`w-2 h-2 rounded-full ${autoDispatch ? 'bg-green-500 animate-pulse' : 'bg-slate-600'}`}></div>
-                            <span>{autoDispatch ? 'AI Auto-Dispatch ON' : 'Manual Dispatch mode'}</span>
+                            <span>{autoDispatch ? 'AI Smart-Dispatch ON' : 'Manual Dispatch mode'}</span>
                         </button>
 
                         {/* Simulator Toggle */}
