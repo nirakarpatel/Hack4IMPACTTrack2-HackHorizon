@@ -176,17 +176,28 @@ export default function LiveMap() {
                     />
                 ))}
 
-                {/* Lines between SOS and Assigned Ambulance */}
+                {/* Lines between SOS and Assigned Ambulance / Hospital */}
                 {activeSOS.map(sos => {
                     if (sos.status !== 'pending' && (sos.path || sos.ambulanceId)) {
                         const assignedAmb = ambulances.find(a => a.id === sos.ambulanceId);
                         if (assignedAmb) {
-                            // Use road path if available, otherwise fallback to straight line
+                            // Determine destination point
+                            const isEnRouteHospital = sos.status === 'enroute_hospital' || sos.status === 'pickup';
+                            const destination = isEnRouteHospital && sos.destinationLocation 
+                                ? [sos.destinationLocation.lat, sos.destinationLocation.lng]
+                                : [sos.location.lat, sos.location.lng];
+
+                            // Generate a distinct color based on SOS ID
+                            const colors = ['#3b82f6', '#10b981', '#a855f7', '#f59e0b', '#ec4899', '#06b6d4'];
+                            const colorIndex = Math.abs(sos.id.split('').reduce((a: any, b: any) => (((a << 5) - a) + b.charCodeAt(0)) | 0, 0)) % colors.length;
+                            const routeColor = colors[colorIndex];
+
+                            // Use road path if available
                             const polylinePositions = sos.path && Array.isArray(sos.path)
                                 ? sos.path.map((p: any) => [p.lat, p.lng])
                                 : [
-                                    [sos.location.lat, sos.location.lng],
-                                    [assignedAmb.location.lat, assignedAmb.location.lng]
+                                    [assignedAmb.location.lat, assignedAmb.location.lng],
+                                    destination
                                 ];
 
                             return (
@@ -194,11 +205,12 @@ export default function LiveMap() {
                                     key={`line-${sos.id}`}
                                     positions={polylinePositions}
                                     pathOptions={{ 
-                                        color: '#3b82f6', 
-                                        weight: 4, 
-                                        dashArray: sos.path ? undefined : '5, 10', 
-                                        opacity: 0.8,
-                                        lineJoin: 'round'
+                                        color: routeColor, 
+                                        weight: 6,
+                                        dashArray: undefined,
+                                        opacity: 0.9,
+                                        lineJoin: 'round',
+                                        lineCap: 'round'
                                     }}
                                 />
                             );

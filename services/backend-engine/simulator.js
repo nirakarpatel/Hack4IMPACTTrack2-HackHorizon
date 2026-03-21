@@ -375,12 +375,22 @@ class EROSSimulator {
             case 'enroute_patient':
                 active.status = 'pickup';
                 this.io.emit('ambulance_status_update', { ambId: amb.id, status: 'pickup', incidentId: active.incidentId });
+                
+                // Immediately find hospital and prepare route
+                const nearestHosp = this.findNearestHospital(amb.location);
+                if (nearestHosp) {
+                    active.hospitalId = nearestHosp.id;
+                    const incident = this.pendingIncidents.get(active.incidentId);
+                    if (incident) {
+                        incident.destinationLocation = nearestHosp.location;
+                        incident.hospitalId = nearestHosp.id;
+                    }
+                }
+
                 setTimeout(() => {
-                    const nearestHosp = this.findNearestHospital(amb.location);
                     if (nearestHosp) {
                         active.status = 'enroute_hospital';
                         active.targetLocation = nearestHosp.location;
-                        active.hospitalId = nearestHosp.id;
                         this.io.emit('ambulance_status_update', { ambId: amb.id, status: 'enroute_hospital', incidentId: active.incidentId });
                         this.fetchRoute(amb.id, amb.location, nearestHosp.location);
                     }
