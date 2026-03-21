@@ -9,6 +9,7 @@
         "preview": "vite preview"
     },
     "dependencies": {
+        "eros-root": "file:../..",
         "leaflet": "^1.9.4",
         "lucide-react": "^0.428.0",
         "react": "^18.3.1",
