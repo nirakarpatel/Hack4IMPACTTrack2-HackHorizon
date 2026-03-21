@@ -54,7 +54,7 @@ const hospitalIcon = L.divIcon({
       <div class="absolute -inset-2 bg-slate-400/10 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
       <div class="bg-slate-900 border-2 border-slate-700 w-10 h-10 rounded-xl flex items-center justify-center shadow-xl relative">
         <div class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-900"></div>
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500 fill-red-500/20"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svga" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500 fill-red-500/20"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
       </div>
     </div>
   `,
@@ -153,6 +153,9 @@ const App = () => {
     const [incidentStatus, setIncidentStatus] = useState('pending');
     const [assignedAmbulance, setAssignedAmbulance] = useState(null);
     const [hospitals, setHospitals] = useState([]);
+    const [emergencyDescription, setEmergencyDescription] = useState('');
+    const [triageResult, setTriageResult] = useState(null);
+    const [isTriaging, setIsTriaging] = useState(false);
 
     useEffect(() => {
         socket.on('ambulance_assigned', (data) => {
@@ -209,6 +212,7 @@ const App = () => {
     };
 
     const triggerSOS = async () => {
+        setIsTriaging(true);
         const cities = [
             { name: 'Delhi', lat: 28.6139, lng: 77.2090 },
             { name: 'Mumbai', lat: 19.0760, lng: 72.8777 },
@@ -216,6 +220,34 @@ const App = () => {
         ];
         const defaultCity = cities[Math.floor(Math.random() * cities.length)];
 
+        // Step 1: Run AI Triage if description provided
+        let triageData = null;
+        if (emergencyDescription.trim()) {
+            try {
+                const triageResp = await fetch(`${BACKEND_URL}/api/ai-triage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        description: emergencyDescription,
+                        user_vitals: {
+                            heartRate: user.heartRate,
+                            spo2: user.spo2,
+                            bloodPressure: user.bloodPressure,
+                            bloodGroup: user.bloodGroup
+                        }
+                    })
+                });
+                const triageJson = await triageResp.json();
+                if (triageJson.success && triageJson.triage) {
+                    triageData = triageJson.triage;
+                    setTriageResult(triageData);
+                }
+            } catch (err) {
+                console.error('AI Triage failed, continuing with default:', err);
+            }
+        }
+
+        // Step 2: Submit SOS with triage-informed type and priority
         const submitSOS = async (lat, lng, cityName) => {
             const location = { lat, lng, city: cityName };
             setUserLocation(location);
@@ -228,7 +260,9 @@ const App = () => {
                         userProfile: user,
                         location,
                         city: cityName,
-                        type: 'Critical Medical Alert'
+                        type: triageData?.type || 'Critical Medical Alert',
+                        priority: triageData?.priority || 3,
+                        description: emergencyDescription || undefined
                     })
                 });
                 const data = await resp.json();
@@ -238,6 +272,8 @@ const App = () => {
                 }
             } catch (err) {
                 console.error('SOS Trigger failed', err);
+            } finally {
+                setIsTriaging(false);
             }
         };
 
@@ -338,8 +374,38 @@ const App = () => {
                     </div>
                 </div>
 
-                <div className="pt-12">
-                    <SlideToSOS onConfirm={triggerSOS} />
+                {/* NLP Emergency Description Input */}
+                <div className="glass p-6 rounded-[2.5rem] border-slate-800/40">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-xl bg-purple-600/20 flex items-center justify-center border border-purple-500/30">
+                            <Activity size={16} className="text-purple-400" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-black text-purple-400 uppercase tracking-widest">AI-Powered Triage</p>
+                            <p className="text-[9px] text-slate-500 font-bold">Describe your emergency for faster response</p>
+                        </div>
+                    </div>
+                    <textarea
+                        className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl px-5 py-4 text-sm text-white placeholder-slate-600 resize-none focus:border-purple-500/50 focus:outline-none transition-colors"
+                        rows={3}
+                        value={emergencyDescription}
+                        onChange={e => setEmergencyDescription(e.target.value)}
+                        placeholder="e.g. My father collapsed, has chest pain and is not breathing..."
+                    />
+                    {emergencyDescription.trim() && (
+                        <p className="text-[9px] text-purple-400/70 mt-2 font-bold uppercase tracking-wider">✦ AI will analyze when SOS is triggered</p>
+                    )}
+                </div>
+
+                <div className="pt-6">
+                    {isTriaging ? (
+                        <div className="h-20 bg-slate-900/60 rounded-[2.5rem] border border-purple-500/30 flex items-center justify-center gap-3">
+                            <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-purple-400">AI Analyzing Emergency...</span>
+                        </div>
+                    ) : (
+                        <SlideToSOS onConfirm={triggerSOS} />
+                    )}
                 </div>
             </div>
         );
@@ -393,11 +459,33 @@ const App = () => {
                                 <div className="w-4 h-4 rounded-full bg-red-600 animate-pulse"></div>
                                 <div>
                                     <span className="block text-[10px] font-black uppercase tracking-[0.3em] text-red-500 italic">Emergency Matrix Active</span>
-                                    <p className="text-[10px] font-bold text-slate-500">Live Satellite Response Link Wired</p>
+                                    <p className="text-[10px] font-bold text-slate-500">
+                                        {triageResult ? `AI: ${triageResult.type} — Priority ${triageResult.priority}` : 'Live Satellite Response Link Wired'}
+                                    </p>
                                 </div>
                             </div>
                             <Zap size={20} className="text-red-600" />
                         </div>
+
+                        {/* AI Triage Assessment Card */}
+                        {triageResult && (
+                            <div className="glass p-5 rounded-[2rem] border-purple-500/30 backdrop-blur-md animate-in fade-in duration-700">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-8 h-8 rounded-xl bg-blue-600/20 flex items-center justify-center">
+                                        <Activity size={16} className="text-blue-400" />
+                                    </div>
+                                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Automated Triage</span>
+                                </div>
+                                <p className="text-sm font-bold text-slate-200 leading-relaxed">{triageResult.summary}</p>
+                                <div className="flex gap-2 mt-3 flex-wrap">
+                                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${triageResult.priority <= 2 ? 'bg-red-600/20 text-red-400 border border-red-500/30' :
+                                            triageResult.priority <= 3 ? 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/30' :
+                                                'bg-green-600/20 text-green-400 border border-green-500/30'
+                                        }`}>Priority {triageResult.priority}</span>
+                                    <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700">{triageResult.type}</span>
+                                </div>
+                            </div>
+                        )}
 
                         {assignedAmbulance && (
                             <div className="glass p-8 rounded-[3.5rem] border-slate-800 shadow-[0_40px_80px_rgba(0,0,0,0.6)] animate-in slide-in-from-top duration-1000 relative overflow-hidden">

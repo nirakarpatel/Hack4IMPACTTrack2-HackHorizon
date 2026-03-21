@@ -1,0 +1,14 @@
+{
+  "name": "eros-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev:dashboard",
+    "build": "npm run build --prefix apps/dispatch-dashboard",
+    "dev:dashboard": "npm run dev --prefix apps/dispatch-dashboard",
+    "dev:mobile": "npm run dev --prefix mobile/citizen-sos",
+    "start:engine": "npm start --prefix services/backend-engine",
+    "start:router": "python services/ai-router/main.py",
+    "install:all": "npm install --prefix apps/dispatch-dashboard && npm install --prefix mobile/citizen-sos && npm install --prefix services/backend-engine && pip install -r services/ai-router/requirements.txt"
+  }
+}

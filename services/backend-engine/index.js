@@ -83,6 +83,69 @@ app.post('/api/ai-recommendations', async (req, res) => {
     }
 });
 
+// AI Triage Proxy — Classifies emergency description using open-source LLM
+app.post('/api/ai-triage', async (req, res) => {
+    try {
+        const { description, user_vitals } = req.body;
+        if (!description) return res.status(400).json({ success: false, message: 'Description is required' });
+
+        const response = await axios.post(`${AI_ROUTER_URL}/triage`, {
+            description,
+            user_vitals: user_vitals || null
+        });
+
+        res.json(response.data);
+    } catch (e) {
+        console.error('[BACKEND] AI Triage Error:', e.message);
+        // Return a basic fallback if AI Router is completely down
+        res.json({
+            success: true,
+            triage: {
+                type: 'Medical Emergency',
+                priority: 3,
+                summary: 'AI triage unavailable — defaulting to general medical response.',
+                recommended_equipment: ['First Aid', 'Oxygen'],
+                ai_source: 'backend_fallback'
+            }
+        });
+    }
+});
+
+// AI Copilot Proxy — Dispatcher AI assistant
+app.post('/api/ai-copilot', async (req, res) => {
+    try {
+        const { message } = req.body;
+        if (!message) return res.status(400).json({ success: false, message: 'Message is required' });
+
+        // Build context from live simulator state
+        const context = {
+            pending_incidents: Array.from(simulator.pendingIncidents.values()).map(i => ({
+                id: i.id, type: i.type, city: i.city, status: i.status,
+                citizenId: i.citizenId, timestamp: i.timestamp
+            })),
+            ambulances: simulator.ambulances.map(a => ({
+                id: a.id, status: a.status, city: a.city, type: a.type
+            })),
+            resolved_count: simulator.resolvedHistory.length,
+            traffic_factor: simulator.trafficFactor
+        };
+
+        const response = await axios.post(`${AI_ROUTER_URL}/copilot`, {
+            message,
+            context
+        });
+
+        res.json(response.data);
+    } catch (e) {
+        console.error('[BACKEND] AI Copilot Error:', e.message);
+        res.json({
+            success: true,
+            response: 'Copilot is currently offline. Please use manual dispatch protocols.',
+            ai_source: 'backend_fallback'
+        });
+    }
+});
+
 // Simulator Manual Dispatch
 app.post('/api/simulator/assign', async (req, res) => {
     const { incidentId, ambulanceId } = req.body;
