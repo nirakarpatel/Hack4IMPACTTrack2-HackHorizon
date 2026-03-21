@@ -274,6 +274,12 @@ class EROSSimulator {
                 if (active) {
                     active.path = path;
                     active.pathIndex = 0;
+                    
+                    const incident = this.pendingIncidents.get(active.incidentId);
+                    if (incident) {
+                        incident.path = path;
+                    }
+                    this.broadcastState();
                 }
             }
         } catch (e) {
@@ -303,6 +309,11 @@ class EROSSimulator {
             }
 
             if (active.path && active.path.length > 0) {
+                // Keep dashboard path updated during movement
+                const incident = this.pendingIncidents.get(active.incidentId);
+                if (incident) {
+                    incident.path = [ { ...amb.location }, ...active.path.slice(active.pathIndex) ];
+                }
                 const targetPoint = active.path[active.pathIndex];
                 if (!targetPoint || !amb.location) return;
 

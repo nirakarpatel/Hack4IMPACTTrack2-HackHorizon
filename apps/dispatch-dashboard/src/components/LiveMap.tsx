@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { socket } from '../lib/socket';
@@ -175,6 +175,37 @@ export default function LiveMap() {
                         icon={createSOSIcon(sos.userProfile?.name || 'Emergency', sos.status)}
                     />
                 ))}
+
+                {/* Lines between SOS and Assigned Ambulance */}
+                {activeSOS.map(sos => {
+                    if (sos.status !== 'pending' && (sos.path || sos.ambulanceId)) {
+                        const assignedAmb = ambulances.find(a => a.id === sos.ambulanceId);
+                        if (assignedAmb) {
+                            // Use road path if available, otherwise fallback to straight line
+                            const polylinePositions = sos.path && Array.isArray(sos.path)
+                                ? sos.path.map((p: any) => [p.lat, p.lng])
+                                : [
+                                    [sos.location.lat, sos.location.lng],
+                                    [assignedAmb.location.lat, assignedAmb.location.lng]
+                                ];
+
+                            return (
+                                <Polyline
+                                    key={`line-${sos.id}`}
+                                    positions={polylinePositions}
+                                    pathOptions={{ 
+                                        color: '#3b82f6', 
+                                        weight: 4, 
+                                        dashArray: sos.path ? undefined : '5, 10', 
+                                        opacity: 0.8,
+                                        lineJoin: 'round'
+                                    }}
+                                />
+                            );
+                        }
+                    }
+                    return null;
+                })}
 
                 {/* Ambulances */}
                 {ambulances.map(amb => (
