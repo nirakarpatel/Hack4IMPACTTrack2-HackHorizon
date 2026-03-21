@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Shield, MapPin, Phone, User, Activity, Bell, AlertTriangle, Navigation, ChevronRight, Heart, Zap, Thermometer, Droplets, Wind, Pill, Calendar, Clock, Plus, CalendarPlus, Stethoscope, ChevronLeft, RefreshCcw, CheckCircle } from 'lucide-react';
 import io from 'socket.io-client';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:4000';
@@ -796,137 +796,159 @@ const App = () => {
         return (
             <div className="min-h-screen bg-slate-950 flex flex-col text-white animate-in fade-in duration-1000 relative overflow-hidden">
                 {/* Visual Overlays */}
-                <div className="absolute inset-0 pointer-events-none z-[2000] overflow-hidden">
+                <div className="absolute inset-0 pointer-events-none z-[10] overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-[150px] bg-gradient-to-b from-red-600/5 to-transparent"></div>
                     <div className="scanline"></div>
                 </div>
 
-                <div className="relative flex-1">
-                    <MapContainer
-                        center={[userLocation?.lat || 20, userLocation?.lng || 78]}
-                        zoom={15}
-                        style={{ height: '100%', width: '100%' }}
-                        zoomControl={false}
-                    >
-                        <MapAutoCenter
-                            userCoords={userLocation}
-                            ambCoords={assignedAmbulance?.location}
-                        />
-                        <TileLayer
-                            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                            attribution='&copy; EROS Advanced Mapping'
-                        />
+                {/* Top Section: Elite Status HUD & Ambulance Banner */}
+                <div className="p-6 space-y-6 relative z-20 bg-slate-950">
+                    <div className="glass p-5 rounded-[2.5rem] border-red-600/30 flex items-center justify-between shadow-2xl backdrop-blur-md">
+                        <div className="flex items-center gap-4">
+                            <div className="w-4 h-4 rounded-full bg-red-600 animate-pulse"></div>
+                            <div>
+                                <span className="block text-[10px] font-black uppercase tracking-[0.3em] text-red-500 italic">Emergency Matrix Active</span>
+                                <p className="text-[10px] font-bold text-slate-500">
+                                    {triageResult ? `AI: ${triageResult.type} — Priority ${triageResult.priority}` : 'Live Satellite Response Link Wired'}
+                                </p>
+                            </div>
+                        </div>
+                        <Zap size={20} className="text-red-600" />
+                    </div>
 
-                        {userLocation && <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon} />}
+                    {/* AI Triage Assessment Card */}
+                    {triageResult && (
+                        <div className="glass p-5 rounded-[2rem] border-purple-500/30 backdrop-blur-md animate-in fade-in duration-700">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="w-8 h-8 rounded-xl bg-blue-600/20 flex items-center justify-center">
+                                    <Activity size={16} className="text-blue-400" />
+                                </div>
+                                <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Automated Triage</span>
+                            </div>
+                            <p className="text-sm font-bold text-slate-200 leading-relaxed">{triageResult.summary}</p>
+                            <div className="flex gap-2 mt-3 flex-wrap">
+                                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${triageResult.priority <= 2 ? 'bg-red-600/20 text-red-400 border border-red-500/30' :
+                                    triageResult.priority <= 3 ? 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/30' :
+                                        'bg-green-600/20 text-green-400 border border-green-500/30'
+                                    }`}>Priority {triageResult.priority}</span>
+                                <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700">{triageResult.type}</span>
+                            </div>
+                        </div>
+                    )}
 
-                        {assignedAmbulance && (
-                            <Marker
-                                position={[assignedAmbulance.location.lat, assignedAmbulance.location.lng]}
-                                icon={ambulanceIcon}
-                            />
-                        )}
-
-                        {hospitals.filter(h => h.city === userLocation?.city).map(h => (
-                            <Marker key={h.id} position={[h.location.lat, h.location.lng]} icon={hospitalIcon} />
-                        ))}
-                    </MapContainer>
-
-                    {/* Elite Status HUD */}
-                    <div className="absolute top-10 left-6 right-6 z-[1000] space-y-6">
-                        <div className="glass p-5 rounded-[2.5rem] border-red-600/30 flex items-center justify-between shadow-2xl backdrop-blur-md">
-                            <div className="flex items-center gap-4">
-                                <div className="w-4 h-4 rounded-full bg-red-600 animate-pulse"></div>
-                                <div>
-                                    <span className="block text-[10px] font-black uppercase tracking-[0.3em] text-red-500 italic">Emergency Matrix Active</span>
-                                    <p className="text-[10px] font-bold text-slate-500">
-                                        {triageResult ? `AI: ${triageResult.type} — Priority ${triageResult.priority}` : 'Live Satellite Response Link Wired'}
+                    {/* Ambulance Arriving Card */}
+                    {assignedAmbulance && (
+                        <div className="glass p-8 rounded-[3.5rem] border-slate-800 shadow-[0_40px_80px_rgba(0,0,0,0.6)] animate-in slide-in-from-top duration-1000 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent"></div>
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-6">
+                                    <div className="w-16 h-16 bg-red-600 rounded-[2rem] flex items-center justify-center shadow-[0_0_30px_rgba(220,38,38,0.4)]">
+                                        <Navigation className="text-white fill-white" size={28} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Responding Unit</h4>
+                                        <p className="text-3xl font-black italic">{assignedAmbulance.id}</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${hasArrived ? 'text-green-500' : isTransporting ? 'text-blue-500' : 'text-orange-500'}`}>
+                                        {hasArrived ? 'ARRIVED AT LOCATION' : incidentStatus === 'enroute_hospital' ? 'Hospital Transport' :
+                                            incidentStatus === 'pickup' ? 'Ambulance On-Site' : 'High-Speed response'}
+                                    </p>
+                                    <p className={`text-4xl font-black tabular-nums ${hasArrived ? 'text-white' : ''}`}>
+                                        {hasArrived ? 'NOW' : incidentStatus === 'pickup' ? 'LOADING' : (incidentStatus === 'enroute_hospital' ? '03:15' : '02:40')}
                                     </p>
                                 </div>
                             </div>
-                            <Zap size={20} className="text-red-600" />
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-4 text-slate-400">
+                                    <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800">
+                                        <Activity size={18} className="text-red-500" />
+                                    </div>
+                                    <span className="text-sm font-bold leading-tight">
+                                        {hasArrived 
+                                            ? 'Your emergency unit is now at your location. Medical help is with you.'
+                                            : incidentStatus === 'enroute_hospital'
+                                            ? 'Life-Support systems engaged for hospital transport'
+                                            : 'Siren active. Unit clearing traffic for immediate arrival'}
+                                    </span>
+                                </div>
+                                <div className="h-6 bg-slate-950 rounded-2xl p-1 border border-slate-900 relative overflow-hidden">
+                                    <div
+                                        className={`h-full bg-gradient-to-r ${hasArrived ? 'from-green-600 to-green-400 shadow-[0_0_15px_rgba(34,197,94,0.5)] w-full' : 'from-red-600 to-red-400 shadow-[0_0_15px_rgba(220,38,38,0.5)]'} rounded-xl transition-all duration-1000 ${!hasArrived ? (incidentStatus === 'pickup' ? 'w-1/2' : (incidentStatus === 'enroute_hospital' ? 'w-full' : 'w-1/4')) : ''
+                                            }`}
+                                    ></div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <span className="text-[8px] font-black uppercase tracking-[0.5em] text-white/50">Mission Progress</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                    )}
+                </div>
 
-                        {/* AI Triage Assessment Card */}
-                        {triageResult && (
-                            <div className="glass p-5 rounded-[2rem] border-purple-500/30 backdrop-blur-md animate-in fade-in duration-700">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="w-8 h-8 rounded-xl bg-blue-600/20 flex items-center justify-center">
-                                        <Activity size={16} className="text-blue-400" />
-                                    </div>
-                                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Automated Triage</span>
-                                </div>
-                                <p className="text-sm font-bold text-slate-200 leading-relaxed">{triageResult.summary}</p>
-                                <div className="flex gap-2 mt-3 flex-wrap">
-                                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${triageResult.priority <= 2 ? 'bg-red-600/20 text-red-400 border border-red-500/30' :
-                                        triageResult.priority <= 3 ? 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/30' :
-                                            'bg-green-600/20 text-green-400 border border-green-500/30'
-                                        }`}>Priority {triageResult.priority}</span>
-                                    <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700">{triageResult.type}</span>
-                                </div>
-                            </div>
-                        )}
+                {/* Middle Section: Live Tracking Map */}
+                <div className="relative flex-1 min-h-[300px] sm:min-h-[400px] w-full z-10 border-y border-slate-800 shadow-[inset_0_20px_40px_rgba(0,0,0,0.5)]">
+                    <div className="absolute inset-0">
+                        <MapContainer
+                            center={[userLocation?.lat || 20, userLocation?.lng || 78]}
+                            zoom={15}
+                            style={{ height: '100%', width: '100%' }}
+                            zoomControl={false}
+                        >
+                            <MapAutoCenter
+                                userCoords={userLocation}
+                                ambCoords={assignedAmbulance?.location}
+                            />
+                            <TileLayer
+                                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                                attribution='&copy; EROS Advanced Mapping'
+                            />
 
-                        {assignedAmbulance && (
-                            <div className="glass p-8 rounded-[3.5rem] border-slate-800 shadow-[0_40px_80px_rgba(0,0,0,0.6)] animate-in slide-in-from-top duration-1000 relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent"></div>
-                                <div className="flex items-center justify-between mb-8">
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-16 h-16 bg-red-600 rounded-[2rem] flex items-center justify-center shadow-[0_0_30px_rgba(220,38,38,0.4)]">
-                                            <Navigation className="text-white fill-white" size={28} />
-                                        </div>
-                                        <div>
-                                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Responding Unit</h4>
-                                            <p className="text-3xl font-black italic">{assignedAmbulance.id}</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${hasArrived ? 'text-green-500' : isTransporting ? 'text-blue-500' : 'text-orange-500'}`}>
-                                            {hasArrived ? 'ARRIVED AT LOCATION' : incidentStatus === 'enroute_hospital' ? 'Hospital Transport' :
-                                                incidentStatus === 'pickup' ? 'Ambulance On-Site' : 'High-Speed response'}
-                                        </p>
-                                        <p className={`text-4xl font-black tabular-nums ${hasArrived ? 'text-white' : ''}`}>
-                                            {hasArrived ? 'NOW' : incidentStatus === 'pickup' ? 'LOADING' : (incidentStatus === 'enroute_hospital' ? '03:15' : '02:40')}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-4 text-slate-400">
-                                        <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800">
-                                            <Activity size={18} className="text-red-500" />
-                                        </div>
-                                        <span className="text-sm font-bold leading-tight">
-                                            {hasArrived 
-                                                ? 'Your emergency unit is now at your location. Medical help is with you.'
-                                                : incidentStatus === 'enroute_hospital'
-                                                ? 'Life-Support systems engaged for hospital transport'
-                                                : 'Siren active. Unit clearing traffic for immediate arrival'}
-                                        </span>
-                                    </div>
-                                    <div className="h-6 bg-slate-950 rounded-2xl p-1 border border-slate-900 relative overflow-hidden">
-                                        <div
-                                            className={`h-full bg-gradient-to-r ${hasArrived ? 'from-green-600 to-green-400 shadow-[0_0_15px_rgba(34,197,94,0.5)] w-full' : 'from-red-600 to-red-400 shadow-[0_0_15px_rgba(220,38,38,0.5)]'} rounded-xl transition-all duration-1000 ${!hasArrived ? (incidentStatus === 'pickup' ? 'w-1/2' : (incidentStatus === 'enroute_hospital' ? 'w-full' : 'w-1/4')) : ''
-                                                }`}
-                                        ></div>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <span className="text-[8px] font-black uppercase tracking-[0.5em] text-white/50">Mission Progress</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                            {userLocation && <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon} />}
+
+                            {assignedAmbulance && (
+                                <>
+                                    <Marker
+                                        position={[assignedAmbulance.location.lat, assignedAmbulance.location.lng]}
+                                        icon={ambulanceIcon}
+                                    />
+                                    {userLocation && (
+                                        <Polyline
+                                            positions={[
+                                                [userLocation.lat, userLocation.lng],
+                                                [assignedAmbulance.location.lat, assignedAmbulance.location.lng]
+                                            ]}
+                                            pathOptions={{ 
+                                                color: '#ef4444', 
+                                                weight: 4, 
+                                                dashArray: '10, 10', 
+                                                opacity: 0.6,
+                                                lineJoin: 'round'
+                                            }}
+                                        />
+                                    )}
+                                </>
+                            )}
+
+                            {hospitals.filter(h => h.city === userLocation?.city).map(h => (
+                                <Marker key={h.id} position={[h.location.lat, h.location.lng]} icon={hospitalIcon} />
+                            ))}
+                        </MapContainer>
                     </div>
+                </div>
 
-                    <div className="absolute bottom-12 left-6 right-6 z-[1000] space-y-4">
-                        {hasArrived ? (
-                            <button className="w-full bg-green-600 border border-green-500/50 text-white font-black py-6 rounded-[2.5rem] flex items-center justify-center gap-3 shadow-[0_0_40px_rgba(34,197,94,0.4)] pointer-events-none transition-all">
-                                <CheckCircle size={24} /> RESPONDERS ARRIVED
-                            </button>
-                        ) : (
-                            <button className="w-full bg-red-600 text-white font-black py-6 rounded-[2.5rem] flex items-center justify-center gap-3 shadow-[0_20px_40px_rgba(220,38,38,0.4)] transition-transform active:scale-95 group">
-                                <Phone size={24} className="group-hover:animate-shake" /> CALL COORDINATOR
-                            </button>
-                        )}
-                    </div>
+                {/* Bottom Section: Buttons */}
+                <div className="p-6 space-y-4 relative z-20 bg-slate-950">
+                    {hasArrived ? (
+                        <button className="w-full bg-green-600 border border-green-500/50 text-white font-black py-6 rounded-[2.5rem] flex items-center justify-center gap-3 shadow-[0_0_40px_rgba(34,197,94,0.4)] pointer-events-none transition-all">
+                            <CheckCircle size={24} /> RESPONDERS ARRIVED
+                        </button>
+                    ) : (
+                        <button className="w-full bg-red-600 text-white font-black py-6 rounded-[2.5rem] flex items-center justify-center gap-3 shadow-[0_20px_40px_rgba(220,38,38,0.4)] transition-transform active:scale-95 group">
+                            <Phone size={24} className="group-hover:animate-shake" /> CALL COORDINATOR
+                        </button>
+                    )}
                 </div>
 
                 {hasArrived && (
